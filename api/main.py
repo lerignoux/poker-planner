@@ -19,16 +19,16 @@ async def game():
     db.create_game()
     return {}
 
-@app.post("/game/:game_id/submit")
+@app.post("/game/{game_id}/submit")
 async def game_submit(game_id):
     return {}
 
-@app.get("/game/:game_id")
-async def game_session():
+@app.get("/game/{game_id}")
+async def game_session(game_id):
     return {}
 
 
-@app.websocket("/game_socket")
+@app.websocket("/game/socket")
 async def game_websocket(websocket: WebSocket):
    await websocket.accept()
    while True:
