@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import DealerView from '../views/DealerView.vue'
+import PlayerView from '../views/PlayerView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,6 +10,18 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView
+    },
+    {
+      path: '/deal/:gameId',
+      name: 'deal',
+      component: DealerView,
+      props: true 
+    },
+    {
+      path: '/play/:gameId',
+      name: 'play',
+      component: PlayerView,
+      props: true 
     },
     {
       path: '/about',
@@ -21,3 +35,4 @@ const router = createRouter({
 })
 
 export default router
+

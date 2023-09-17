@@ -31,8 +31,9 @@ class SqlHandler():
             CREATE TABLE IF NOT EXISTS stories (
             id string PRIMARY KEY,
             game_id string NOT NULL,
-            jira_id string NOT NULL UNIQUE,
-            summary string
+            jira_id string NOT NULL,
+            summary string,
+            CONSTRAINT uniqueJiras UNIQUE (game_id, jira_id)
         );
         """
         bets_table = """
@@ -110,6 +111,15 @@ class SqlHandler():
         }
         return result
 
+    def remove_player(self, game_id, player_id):
+        delete_bets = f"DELETE FROM bets WHERE game_id='{game_id}' AND player_id='{player_id}'"
+        delete_player = f"DELETE FROM players WHERE game_id='{game_id}' AND id='{player_id}'"
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute(delete_bets)
+            cursor.execute(delete_player)
+        return player_id
+
     def get_players(self, game_id):
         sql = f"SELECT * FROM players WHERE game_id='{game_id}'"
         with self.connection:
@@ -126,13 +136,22 @@ class SqlHandler():
             })
         return result
 
-    def check_player(self, game_id, playername, password):
-        sql = f"SELECT password FROM players WHERE game_id='{game_id}' AND name='{player_id}'"
+    def find_player(self, game_id, name):
+        sql = f"SELECT id FROM players WHERE game_id='{game_id}' AND name='{name}'"
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute(sql)
+            players = cursor.fetchall()
+        assert(len(players) == 1)
+        return players[0][0]
+
+    def check_player(self, game_id, name, password):
+        sql = f"SELECT password FROM players WHERE game_id='{game_id}' AND name='{name}'"
         with self.connection:
             cursor = self.connection.cursor()
             cursor.execute(sql)
             passwords = cursor.fetchall()
-        return len(passwords) == 1 and passwords[0] == password
+        return len(passwords) == 1 and str(passwords[0][0]) == str(password)
 
     def add_story(self, game_id, story):
         story_id = uuid.uuid4()
@@ -159,7 +178,7 @@ class SqlHandler():
             'summary': stories[0][2]
         }
         if bets:
-            result['bets'] = self.get_bets(story_id)
+            result['bets'] = self.find_bets(story_id)
         return result
 
     def get_stories(self, game_id, bets=False):
@@ -178,8 +197,8 @@ class SqlHandler():
                 'summary': story[2]
             }
             if bets:
-                print("fetching bets {story}")
-                res['bets'] = self.get_bets(story[0])
+                print(f"fetching bets {story}")
+                res['bets'] = self.find_bets(story[0])
 
             result.append(res)
 
@@ -199,10 +218,10 @@ class SqlHandler():
             bet_id = uuid.uuid4()
             sql = f"INSERT INTO bets (id, game_id, player_id, story_id, bet) VALUES('{bet_id}', '{game_id}', '{player_id}', '{story_id}', '{bet}') "
 
-        print(sql)
         with self.connection:
             cursor = self.connection.cursor()
             cursor.execute(sql)
+
         return bet_id
 
     def played(self, game_id, story_id):
@@ -242,14 +261,14 @@ class SqlHandler():
         }
         return result
 
-    def get_bets(self, story_id):
+    def find_bets(self, story_id):
         sql = f"SELECT * FROM bets WHERE story_id='{story_id}'"
-        print(sql)
         with self.connection:
             cursor = self.connection.cursor()
             cursor.execute(sql)
             bets = cursor.fetchall()
 
+        print(f"bets found on {sql}: {bets}")
         result = []
         for bet in bets:
             result.append({
